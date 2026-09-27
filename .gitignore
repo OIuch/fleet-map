@@ -1,0 +1,4 @@
+# Never commit secrets or raw fleet data to the public repo.
+.publish-passphrase
+*.log
+.DS_Store
