@@ -21,10 +21,10 @@ command -v gh   >/dev/null || fail "gh not found"
 mode="$(stat -c '%a' ../.publish-passphrase)"
 [ "$mode" = "600" ] || { chmod 600 ../.publish-passphrase; printf 'tightened passphrase mode to 0600\n'; }
 
-printf '\n[1/4] building encrypted artifacts\n'
+printf '\n[1/5] building encrypted artifacts\n'
 node build-lock.js
 
-printf '\n[2/4] verifying no plaintext leaks\n'
+printf '\n[2/5] verifying no plaintext leaks\n'
 node -e '
 const fs = require("fs");
 const h = fs.readFileSync("zts-map.html", "utf8");
@@ -48,13 +48,30 @@ if (leaks.length) { console.error("LEAKS:\n  " + leaks.join("\n  ")); process.ex
 console.log("clean: " + m[1].length + " ciphertext chars, all fleet data encrypted");
 '
 
-printf '\n[3/4] committing %s\n' "$REPO"
+printf '\n[3/5] committing %s\n' "$REPO"
 git rev-parse --git-dir >/dev/null 2>&1 || fail "publish/ is not a git repo (init and set remote first)"
 git add -- index.html zts-map.html build-lock.js publish.sh .gitignore
 git -c core.hooksPath=/dev/null commit -q -m "chore: encrypted ZTS map build ($(date -u +%Y-%m-%dT%H:%MZ))" --allow-empty
 
-printf '\n[4/4] pushing to %s (%s)\n' "$REPO" "$BRANCH"
+printf '\n[4/5] pushing to %s (%s)\n' "$REPO" "$BRANCH"
 git push -q origin "HEAD:$BRANCH"
 
-printf '\nDeployed: https://%s.io/\n' "$(gh repo view "$REPO" --json homepage -q .homepage 2>/dev/null || echo "OIuch.github.io")"
+printf '\n[5/5] refreshing private data release\n'
+DATA_REPO="${ZTS_DATA_REPO:-OIuch/zts-data}"
+if [ -f ../zts-position-logs.json ] && [ -f ../zts-position-logs.csv ]; then
+  tag="data-$(date -u +%Y-%m-%d)"
+  if gh release view "$tag" --repo "$DATA_REPO" >/dev/null 2>&1; then
+    gh release delete "$tag" --repo "$DATA_REPO" --yes --cleanup-tag >/dev/null
+    printf 'replaced existing %s\n' "$tag"
+  fi
+  ( cd .. && gh release create "$tag" --repo "$DATA_REPO" \
+      --title "Fleet logs $tag" \
+      --notes "ZTS position logs export, regenerated on each refresh." \
+      zts-position-logs.json zts-position-logs.csv >/dev/null )
+  printf 'uploaded logs to %s (%s)\n' "$DATA_REPO" "$tag"
+else
+  printf 'no log exports found, skipping release\n'
+fi
+
+printf '\nDeployed: https://oiuch.github.io/fleet-map/\n'
 printf 'Passphrase: stored locally at ../.publish-passphrase (not printed, not committed)\n'
