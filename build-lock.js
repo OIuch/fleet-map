@@ -103,23 +103,23 @@ const MARKUP = `
 
 function buildUnlockJs(blob) {
   return `
-const ZTS_BLOB = "${blob}";
-const ZTS_ITER = ${ITERATIONS};
-function ztsBytes(b64) {
+const FLEET_BLOB = "${blob}";
+const FLEET_ITER = ${ITERATIONS};
+function fleetBytes(b64) {
   const raw = atob(b64);
   const out = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
   return out;
 }
-async function ztsDecrypt(pass) {
-  const raw = ztsBytes(ZTS_BLOB);
+async function fleetDecrypt(pass) {
+  const raw = fleetBytes(FLEET_BLOB);
   const salt = raw.subarray(0, 16);
   const nonce = raw.subarray(16, 28);
   const sealed = raw.subarray(28);
   const material = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
   const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: salt, iterations: ZTS_ITER, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: salt, iterations: FLEET_ITER, hash: 'SHA-256' },
     material, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
   const plain = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: nonce, tagLength: 128 }, key, sealed);
@@ -145,7 +145,7 @@ function buildUnlockHandlers() {
       btn.disabled = true;
       btn.textContent = 'Sprawdzam…';
       try {
-        const data = await ztsDecrypt(pass);
+        const data = await fleetDecrypt(pass);
         document.getElementById('lock').remove();
         boot(data);
       } catch (err) {

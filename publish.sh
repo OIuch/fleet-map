@@ -6,8 +6,8 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
-REPO="${ZTS_PUBLISH_REPO:-OIuch/fleet-map}"
-BRANCH="${ZTS_PUBLISH_BRANCH:-main}"
+REPO="${FLEET_PUBLISH_REPO:-${ZTS_PUBLISH_REPO:-OIuch/fleet-map}}"
+BRANCH="${FLEET_PUBLISH_BRANCH:-${ZTS_PUBLISH_BRANCH:-main}}"
 
 fail() { printf '\nERROR: %s\n' "$1" >&2; exit 1; }
 
@@ -28,7 +28,7 @@ printf '\n[2/5] verifying no plaintext leaks\n'
 node -e '
 const fs = require("fs");
 const h = fs.readFileSync("zts-map.html", "utf8");
-const m = h.match(/const ZTS_BLOB = "([A-Za-z0-9+/=]+)";/);
+const m = h.match(/const FLEET_BLOB = "([A-Za-z0-9+/=]+)";/);
 if (!m) { console.error("no ciphertext blob found"); process.exit(1); }
 const s = h.indexOf("\"" + m[1] + "\"") + 1, e = s + m[1].length;
 const leaks = [];
@@ -51,13 +51,13 @@ console.log("clean: " + m[1].length + " ciphertext chars, all fleet data encrypt
 printf '\n[3/5] committing %s\n' "$REPO"
 git rev-parse --git-dir >/dev/null 2>&1 || fail "publish/ is not a git repo (init and set remote first)"
 git add -- index.html zts-map.html build-lock.js publish.sh .gitignore
-git -c core.hooksPath=/dev/null commit -q -m "chore: encrypted ZTS map build ($(date -u +%Y-%m-%dT%H:%MZ))" --allow-empty
+git -c core.hooksPath=/dev/null commit -q -m "chore: encrypted Fleet Map build ($(date -u +%Y-%m-%dT%H:%MZ))" --allow-empty
 
 printf '\n[4/5] pushing to %s (%s)\n' "$REPO" "$BRANCH"
 git push -q origin "HEAD:$BRANCH"
 
 printf '\n[5/5] refreshing private data release\n'
-DATA_REPO="${ZTS_DATA_REPO:-OIuch/zts-data}"
+DATA_REPO="${FLEET_DATA_REPO:-${ZTS_DATA_REPO:-OIuch/zts-data}}"
 if [ -f ../zts-position-logs.json ] && [ -f ../zts-position-logs.csv ]; then
   tag="data-$(date -u +%Y-%m-%d)"
   if gh release view "$tag" --repo "$DATA_REPO" >/dev/null 2>&1; then
@@ -66,7 +66,7 @@ if [ -f ../zts-position-logs.json ] && [ -f ../zts-position-logs.csv ]; then
   fi
   ( cd .. && gh release create "$tag" --repo "$DATA_REPO" \
       --title "Fleet logs $tag" \
-      --notes "ZTS position logs export, regenerated on each refresh." \
+      --notes "Fleet position logs export, regenerated on each refresh." \
       zts-position-logs.json zts-position-logs.csv >/dev/null )
   printf 'uploaded logs to %s (%s)\n' "$DATA_REPO" "$tag"
 else
