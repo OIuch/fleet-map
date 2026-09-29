@@ -92,7 +92,7 @@ const CSS = `
 const MARKUP = `
 <div id="lock">
   <form class="card" id="lockForm" autocomplete="off">
-    <h1>Mapa ZTS</h1>
+    <h1>Fleet Map</h1>
     <p>Dane floty są zaszyfrowane.<br>Wpisz hasło, aby odblokować mapę.</p>
     <input type="password" id="lockPass" placeholder="HASŁO" inputmode="latin" autocapitalize="characters" autocorrect="off" spellcheck="false" required>
     <button type="submit">Odblokuj</button>
@@ -204,8 +204,8 @@ function main() {
   fs.writeFileSync(OUT_INDEX,
     '<!doctype html>\n<html lang="pl">\n<head>\n<meta charset="utf-8">\n' +
     '<meta name="robots" content="noindex, nofollow">\n' +
-    '<title>Mapa ZTS</title>\n<meta http-equiv="refresh" content="0; url=zts-map.html">\n' +
-    '</head>\n<body><p><a href="zts-map.html">Mapa ZTS</a></p></body>\n</html>\n', 'utf8');
+    '<title>Fleet Map</title>\n<meta http-equiv="refresh" content="0; url=zts-map.html">\n' +
+    '</head>\n<body><p><a href="zts-map.html">Fleet Map</a></p></body>\n</html>\n', 'utf8');
 
   console.log('locked build written');
   console.log('  plaintext DATA : ' + (json.length / 1024).toFixed(0) + ' KB');
