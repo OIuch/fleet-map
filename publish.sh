@@ -15,7 +15,7 @@ command -v node  >/dev/null || fail "node not found"
 command -v git  >/dev/null || fail "git not found"
 command -v gh   >/dev/null || fail "gh not found"
 
-[ -f ../zts-map.html ]      || fail "missing ../zts-map.html (run fetch-zts.js first)"
+[ -f ../fleet-map.html ]      || fail "missing ../fleet-map.html (run fetch-fleet.js first)"
 [ -f ../.publish-passphrase ] || fail "missing ../.publish-passphrase"
 
 mode="$(stat -c '%a' ../.publish-passphrase)"
@@ -27,7 +27,7 @@ node build-lock.js
 printf '\n[2/5] verifying no plaintext leaks\n'
 node -e '
 const fs = require("fs");
-const h = fs.readFileSync("zts-map.html", "utf8");
+const h = fs.readFileSync("fleet-map.html", "utf8");
 const m = h.match(/const FLEET_BLOB = "([A-Za-z0-9+/=]+)";/);
 if (!m) { console.error("no ciphertext blob found"); process.exit(1); }
 const s = h.indexOf("\"" + m[1] + "\"") + 1, e = s + m[1].length;
@@ -50,15 +50,15 @@ console.log("clean: " + m[1].length + " ciphertext chars, all fleet data encrypt
 
 printf '\n[3/5] committing %s\n' "$REPO"
 git rev-parse --git-dir >/dev/null 2>&1 || fail "publish/ is not a git repo (init and set remote first)"
-git add -- index.html zts-map.html build-lock.js publish.sh .gitignore
+git add -- index.html fleet-map.html zts-map.html build-lock.js publish.sh .gitignore
 git -c core.hooksPath=/dev/null commit -q -m "chore: encrypted Fleet Map build ($(date -u +%Y-%m-%dT%H:%MZ))" --allow-empty
 
 printf '\n[4/5] pushing to %s (%s)\n' "$REPO" "$BRANCH"
 git push -q origin "HEAD:$BRANCH"
 
 printf '\n[5/5] refreshing private data release\n'
-DATA_REPO="${FLEET_DATA_REPO:-${ZTS_DATA_REPO:-OIuch/zts-data}}"
-if [ -f ../zts-position-logs.json ] && [ -f ../zts-position-logs.csv ]; then
+DATA_REPO="${FLEET_DATA_REPO:-${ZTS_DATA_REPO:-OIuch/fleet-data}}"
+if [ -f ../fleet-position-logs.json ] && [ -f ../fleet-position-logs.csv ]; then
   tag="data-$(date -u +%Y-%m-%d)"
   if gh release view "$tag" --repo "$DATA_REPO" >/dev/null 2>&1; then
     gh release delete "$tag" --repo "$DATA_REPO" --yes --cleanup-tag >/dev/null
@@ -67,7 +67,7 @@ if [ -f ../zts-position-logs.json ] && [ -f ../zts-position-logs.csv ]; then
   ( cd .. && gh release create "$tag" --repo "$DATA_REPO" \
       --title "Fleet logs $tag" \
       --notes "Fleet position logs export, regenerated on each refresh." \
-      zts-position-logs.json zts-position-logs.csv >/dev/null )
+      fleet-position-logs.json fleet-position-logs.csv >/dev/null )
   printf 'uploaded logs to %s (%s)\n' "$DATA_REPO" "$tag"
 else
   printf 'no log exports found, skipping release\n'

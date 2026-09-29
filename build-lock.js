@@ -4,9 +4,13 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const SRC = path.resolve(__dirname, '..', 'zts-map.html');
+const SRC = path.resolve(__dirname, '..', 'fleet-map.html');
 const OUT_INDEX = path.join(__dirname, 'index.html');
-const OUT_MAP = path.join(__dirname, 'zts-map.html');
+const OUT_MAP = path.join(__dirname, 'fleet-map.html');
+// Legacy path kept so existing bookmarks to the old filename still land on
+// the map. Plain redirect only, no data and no scripts.
+const OUT_LEGACY = path.join(__dirname, 'zts-map.html');
+const MAP_NAME = 'fleet-map.html';
 const PASS_FILE = path.join(__dirname, '..', '.publish-passphrase');
 
 const ITERATIONS = 600000;
@@ -201,16 +205,19 @@ function main() {
 
   const out = locked.replace('<head>', '<head>\n<meta name="robots" content="noindex, nofollow">');
   fs.writeFileSync(OUT_MAP, out, 'utf8');
-  fs.writeFileSync(OUT_INDEX,
+
+  const stub = (target) =>
     '<!doctype html>\n<html lang="pl">\n<head>\n<meta charset="utf-8">\n' +
     '<meta name="robots" content="noindex, nofollow">\n' +
-    '<title>Fleet Map</title>\n<meta http-equiv="refresh" content="0; url=zts-map.html">\n' +
-    '</head>\n<body><p><a href="zts-map.html">Fleet Map</a></p></body>\n</html>\n', 'utf8');
+    '<title>Fleet Map</title>\n<meta http-equiv="refresh" content="0; url=' + target + '">\n' +
+    '</head>\n<body><p><a href="' + target + '">Fleet Map</a></p></body>\n</html>\n';
+  fs.writeFileSync(OUT_INDEX, stub(MAP_NAME), 'utf8');
+  fs.writeFileSync(OUT_LEGACY, stub(MAP_NAME), 'utf8');
 
   console.log('locked build written');
   console.log('  plaintext DATA : ' + (json.length / 1024).toFixed(0) + ' KB');
   console.log('  ciphertext     : ' + (blob.length / 1024).toFixed(0) + ' KB base64');
-  console.log('  zts-map.html   : ' + (out.length / 1024).toFixed(0) + ' KB');
+  console.log('  ' + MAP_NAME + ' : ' + (out.length / 1024).toFixed(0) + ' KB');
   console.log('  passphrase     : ' + PASS_FILE + ' (not printed)');
 }
 
